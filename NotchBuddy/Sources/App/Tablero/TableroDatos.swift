@@ -86,6 +86,16 @@ enum TableroTiempo {
         return dias == 1 ? "ayer" : "hace \(dias) d"
     }
 
+    /// Version corta para las tarjetas angostas: "ahora", "12 min", "3 h", "ayer", "4 d".
+    static func corto(_ minutos: Int) -> String {
+        if minutos < 1 { return "ahora" }
+        if minutos < 60 { return "\(minutos) min" }
+        let horas = minutos / 60
+        if horas < 24 { return "\(horas) h" }
+        let dias = horas / 24
+        return dias == 1 ? "ayer" : "\(dias) d"
+    }
+
     /// Porcentaje entero: 0.62 -> "62%".
     static func porcentaje(_ fraccion: Double) -> String {
         "\(Int((min(max(fraccion, 0), 1) * 100).rounded()))%"
@@ -99,7 +109,7 @@ enum TableroMuestra {
         TableroConsumo(id: "claude-sesion", nombre: "Claude sesión", valor: "12%", fraccion: 0.12, colorHex: "#22C55E"),
         TableroConsumo(id: "claude-semana", nombre: "Claude semana", valor: "25%", fraccion: 0.25, colorHex: "#22C55E"),
         TableroConsumo(id: "vercel", nombre: "Vercel", valor: "38 deploys · 6 d", fraccion: 0.38, colorHex: "#A78BFA"),
-        TableroConsumo(id: "github", nombre: "GitHub Actions", valor: "420 de 2.000 min", fraccion: 0.21, colorHex: "#38BDF8"),
+        TableroConsumo(id: "github", nombre: "GitHub", valor: "420 de 2.000 min", fraccion: 0.21, colorHex: "#38BDF8"),
     ]
 
     static let novedades: [TableroNovedad] = [

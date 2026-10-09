@@ -12,6 +12,7 @@ enum IslandView: String, CaseIterable {
     case overview, empty, approval, question, error, finished
     case confused, upload, uploading, choose, mail, prompt
     case searching, result, note, settings, greeting, wardrobe, recap
+    case tablero
 }
 
 // MARK: - Bot State
@@ -192,6 +193,10 @@ enum IslandConst {
         .greeting:  ViewLayout(height: 150, botX: 320, botY: 90,  botDiameter: 0,  agentMode: .none),
         .wardrobe:  ViewLayout(height: 160, botX: 68,  botY: nil, botDiameter: 58, agentMode: .none),
         .recap:     ViewLayout(height: 160, botX: 62,  botY: nil, botDiameter: 58, agentMode: .column),
+        // Tablero (TableroView): cuatro filas en 448pt de contenido, dentro del
+        // panel de 560. Mochi va en la tarjeta de estado general (fila de 98pt
+        // que empieza en y=42), 5pt bajo su centro como en .overview.
+        .tablero:   ViewLayout(height: 500, botX: 68,  botY: 96,  botDiameter: 58, agentMode: .none),
     ]
 
     // Project colors — keyed by lowercase display name or slug

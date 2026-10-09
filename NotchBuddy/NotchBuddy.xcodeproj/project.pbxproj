@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A2DC39C014BE895F162DED9C /* PendientesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9911F1CC066A79359576025 /* PendientesStore.swift */; };
+		4CBDD619F9C11DAC971F1C45 /* TableroDatos.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C5715D5F4A1E651F38530A /* TableroDatos.swift */; };
+		54248DD2B06ACDAC75A6A350 /* TableroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26141E5A60A608AEE294FF25 /* TableroView.swift */; };
+		E27FA4362DEBA3422C7CEEEC /* PendientesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9911F1CC066A79359576025 /* PendientesStore.swift */; };
+		4851705D28FC4CB39BD461C4 /* TableroDatos.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C5715D5F4A1E651F38530A /* TableroDatos.swift */; };
+		71E515129A608CE3392216C7 /* TableroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26141E5A60A608AEE294FF25 /* TableroView.swift */; };
 		0099C844CFD9424CEAA5CA77 /* ClaudeResponseText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444604C7E2C530B664849EF9 /* ClaudeResponseText.swift */; };
 		01B96F947DF2BDC352E8526D /* WeeklyRecapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888B3E1420BCB6292BDC8117 /* WeeklyRecapView.swift */; };
 		0329E76BA4A8FEEA8A6D76E7 /* ClaudeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83D5410BD030B243ADDCFF4 /* ClaudeService.swift */; };
@@ -286,6 +292,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C9911F1CC066A79359576025 /* PendientesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendientesStore.swift; sourceTree = "<group>"; };
+		C3C5715D5F4A1E651F38530A /* TableroDatos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableroDatos.swift; sourceTree = "<group>"; };
+		26141E5A60A608AEE294FF25 /* TableroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableroView.swift; sourceTree = "<group>"; };
 		011D05714C97CF5CAB32DCE7 /* AgentNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentNotifier.swift; sourceTree = "<group>"; };
 		0365DDE3C554F5E8570055F4 /* IslandTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandTypes.swift; sourceTree = "<group>"; };
 		045E7300878138F0AC385920 /* MochiStill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MochiStill.swift; sourceTree = "<group>"; };
@@ -476,6 +485,7 @@
 				888B3E1420BCB6292BDC8117 /* WeeklyRecapView.swift */,
 				E91B733ADC638E14E9BB6EFA /* WindowContextCapture.swift */,
 				9207F9B32D9C7844F5332A31 /* PhoneLink */,
+				4B2C4D5F5C696F736C1C8292 /* Tablero */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -501,6 +511,16 @@
 				A14A61070D293AB4BBA303F7 /* NotchBuddy.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4B2C4D5F5C696F736C1C8292 /* Tablero */ = {
+			isa = PBXGroup;
+			children = (
+				C9911F1CC066A79359576025 /* PendientesStore.swift */,
+				C3C5715D5F4A1E651F38530A /* TableroDatos.swift */,
+				26141E5A60A608AEE294FF25 /* TableroView.swift */,
+			);
+			path = Tablero;
 			sourceTree = "<group>";
 		};
 		9207F9B32D9C7844F5332A31 /* PhoneLink */ = {
@@ -803,6 +823,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A2DC39C014BE895F162DED9C /* PendientesStore.swift in Sources */,
+				4CBDD619F9C11DAC971F1C45 /* TableroDatos.swift in Sources */,
+				54248DD2B06ACDAC75A6A350 /* TableroView.swift in Sources */,
 				C940B651C6CA952D99388E04 /* AppDelegate.swift in Sources */,
 				4B6AC00F22EC75E90E0157D5 /* AppLog.swift in Sources */,
 				1F11EC4E6F604C612A1ADAD1 /* AppState.swift in Sources */,
@@ -959,6 +982,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E27FA4362DEBA3422C7CEEEC /* PendientesStore.swift in Sources */,
+				4851705D28FC4CB39BD461C4 /* TableroDatos.swift in Sources */,
+				71E515129A608CE3392216C7 /* TableroView.swift in Sources */,
 				878924960FC0F2B3524D48AC /* AppDelegate.swift in Sources */,
 				61CB7049490F61CFA1B36B64 /* AppLog.swift in Sources */,
 				61F73B27A7E3AFF584B2CC22 /* AppState.swift in Sources */,

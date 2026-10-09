@@ -1,0 +1,50 @@
+name: Tablero (app para probar)
+
+# Compila Coucou con el Tablero en un Mac de GitHub y deja la app lista para
+# descargar: Actions > la corrida > Artifacts > Coucou-Tablero. Sirve para
+# probarla sin instalar Xcode. Firma ad hoc (sin cuenta de desarrollador): la
+# primera vez se abre con clic derecho > Abrir.
+on:
+  push:
+    branches: [claude/tablero]
+  workflow_dispatch:
+
+jobs:
+  app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: cd NotchBuddy && xcodegen
+
+      - name: Build Release (Apple Silicon e Intel, sin firma)
+        run: |
+          xcodebuild \
+            -project NotchBuddy/NotchBuddy.xcodeproj \
+            -scheme NotchBuddy \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build \
+            build \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Firma ad hoc y zip
+        run: |
+          APP=$(find build/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
+          echo "App: $APP"
+          codesign --force --deep --sign - --entitlements NotchBuddy/Resources/Coucou.entitlements "$APP"
+          codesign --verify --deep --strict "$APP"
+          lipo -archs "$APP/Contents/MacOS/"* || true
+          ditto -c -k --keepParent "$APP" Coucou-Tablero.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Coucou-Tablero
+          path: Coucou-Tablero.zip
+          retention-days: 14

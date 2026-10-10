@@ -2,10 +2,10 @@ import Foundation
 
 // MARK: - Tablero: datos
 //
-// Lo que pinta cada tarjeta del tablero (TableroView). Por ahora todo sale de
-// TableroMuestra, con datos de ejemplo; cada tarjeta se conecta despues a su
-// fuente real (Vercel, GitHub, el MacBook) sin cambiar la vista: basta con
-// llenar estas mismas estructuras.
+// Lo que pinta cada tarjeta del tablero (TableroView). Las fuentes reales
+// (TableroFuentes: el MacBook, Vercel y GitHub) llenan estas mismas
+// estructuras; TableroMuestra queda para lo que aun no tiene fuente
+// (Novedades) y para el primer instante antes de medir.
 
 /// Estado de un vigilante o de un servicio: el color del punto.
 enum TableroEstado: String, Codable, Sendable {
@@ -61,9 +61,50 @@ struct TableroEquipo: Sendable {
     let memoria: Double
     /// 0...1, lo usado del disco.
     let disco: Double
-    /// 0...1
-    let bateria: Double
+    /// 0...1; nil en un Mac sin bateria.
+    let bateria: Double?
     let cargando: Bool
+}
+
+/// Un repositorio de GitHub: su ultimo push y como va el CI de la rama principal.
+struct TableroRepo: Identifiable, Sendable {
+    enum CI: Sendable {
+        case verde, falla, corriendo, sinCI
+
+        init(rawGitHub: String?) {
+            switch (rawGitHub ?? "").uppercased() {
+            case "SUCCESS":             self = .verde
+            case "FAILURE", "ERROR":    self = .falla
+            case "PENDING", "EXPECTED": self = .corriendo
+            default:                    self = .sinCI
+            }
+        }
+
+        var estado: TableroEstado {
+            switch self {
+            case .verde:     return .bien
+            case .falla:     return .falla
+            case .corriendo: return .aviso
+            case .sinCI:     return .apagado
+            }
+        }
+
+        var texto: String {
+            switch self {
+            case .verde:     return "CI en verde"
+            case .falla:     return "CI con fallas"
+            case .corriendo: return "CI corriendo"
+            case .sinCI:     return "sin CI"
+            }
+        }
+    }
+
+    /// "owner/repo"
+    let id: String
+    let nombre: String
+    let rama: String
+    let push: Date
+    let ci: CI
 }
 
 /// Un vigilante de la barra de abajo: algo que el panel revisa solo.
@@ -99,6 +140,11 @@ enum TableroTiempo {
     /// Porcentaje entero: 0.62 -> "62%".
     static func porcentaje(_ fraccion: Double) -> String {
         "\(Int((min(max(fraccion, 0), 1) * 100).rounded()))%"
+    }
+
+    /// Minutos enteros entre una fecha y ahora (0 si es del futuro).
+    static func minutos(desde fecha: Date, ahora: Date = Date()) -> Int {
+        max(0, Int(ahora.timeIntervalSince(fecha) / 60))
     }
 }
 

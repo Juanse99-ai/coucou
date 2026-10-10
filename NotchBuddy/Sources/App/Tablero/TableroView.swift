@@ -9,41 +9,57 @@ import SwiftUI
 //   3. Deploys y pushes, y el MacBook.
 //   4. Barra de vigilantes y equipos.
 // Mochi lo dibuja BotPlacement en botX/botY de viewLayouts[.tablero], que cae
-// en la tarjeta de estado general. Los datos salen de TableroMuestra hasta
-// conectar cada fuente; las tarjetas de muestra llevan la etiqueta "muestra".
+// en la tarjeta de estado general. Los datos salen de Coucou (AppState) y de
+// TableroFuentes; lo que aun no tiene fuente (Novedades) sale de
+// TableroMuestra y lleva la etiqueta "muestra".
 
 struct TableroView: View {
     @ObservedObject var state: AppState
     @ObservedObject private var pendientes = PendientesStore.shared
+    @ObservedObject private var fuentes = TableroFuentes.shared
 
     private let separacion: CGFloat = 8
 
+    /// La isla monta todas las vistas a la vez (ocultas); las fuentes solo
+    /// trabajan cuando el tablero es la vista abierta.
+    private var aLaVista: Bool { state.mode == .expanded && state.view == .tablero }
+
+    private var equipo: TableroEquipo { fuentes.equipo ?? TableroMuestra.equipo }
+
     var body: some View {
+        let vigilantes = TableroArmado.vigilantes(state: state, repos: fuentes.repos, equipo: fuentes.equipo)
+        let actividad = TableroArmado.actividad(state: state, repos: fuentes.repos)
         VStack(spacing: separacion) {
             HStack(spacing: separacion) {
-                TableroEstadoGeneral(vigilantes: TableroMuestra.vigilantes)
+                TableroEstadoGeneral(vigilantes: vigilantes, revisado: fuentes.revisado)
                     .frame(width: 322)
-                TableroSesiones(state: state, equipo: TableroMuestra.equipo)
+                TableroSesiones(state: state, equipo: equipo)
             }
             .frame(height: 98)
 
             HStack(spacing: separacion) {
-                TableroConsumos(state: state)
+                TableroConsumos(consumos: TableroArmado.consumos(state: state, deploysHoy: fuentes.deploysHoy,
+                                                                 repos: fuentes.repos))
                 TableroNovedades(novedades: TableroMuestra.novedades)
                 TableroPendientes(store: pendientes)
             }
             .frame(height: 150)
 
             HStack(spacing: separacion) {
-                TableroActividadTarjeta(items: TableroMuestra.actividad)
-                TableroEquipoTarjeta(equipo: TableroMuestra.equipo)
+                TableroActividadTarjeta(items: actividad.isEmpty ? TableroMuestra.actividad : actividad,
+                                        muestra: actividad.isEmpty)
+                TableroEquipoTarjeta(equipo: equipo, muestra: fuentes.equipo == nil)
             }
             .frame(height: 128)
 
-            TableroBarra(vigilantes: TableroMuestra.vigilantes, equipo: TableroMuestra.equipo)
+            TableroBarra(vigilantes: vigilantes, equipo: equipo)
                 .frame(height: 34)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .task(id: aLaVista) {
+            guard aLaVista else { return }
+            await fuentes.vigilar()
+        }
     }
 }
 
@@ -151,6 +167,7 @@ private func tableroDecimal(_ valor: Double) -> String {
 /// lo primero que falla, o "Todo en orden".
 struct TableroEstadoGeneral: View {
     let vigilantes: [TableroVigilante]
+    let revisado: Date?
 
     private var conFalla: [TableroVigilante] { vigilantes.filter { $0.estado == .falla } }
     private var conAviso: [TableroVigilante] { vigilantes.filter { $0.estado == .aviso } }
@@ -192,16 +209,18 @@ struct TableroEstadoGeneral: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 4)
-                TableroEtiquetaMuestra()
             }
-            Text(verbatim: "\(bien) de \(vigilantes.count) vigilantes bien")
+            Text(verbatim: vigilantes.isEmpty ? "Sin vigilantes conectados"
+                                              : "\(bien) de \(vigilantes.count) vigilantes bien")
                 .font(.system(size: 11))
                 .foregroundColor(TableroColor.suave)
                 .lineLimit(1)
-            Text(verbatim: "Revisado \(TableroTiempo.hace(0))")
-                .font(.system(size: 11))
-                .foregroundColor(TableroColor.tenue)
-                .lineLimit(1)
+            if let revisado {
+                Text(verbatim: "Revisado \(TableroTiempo.hace(TableroTiempo.minutos(desde: revisado)))")
+                    .font(.system(size: 11))
+                    .foregroundColor(TableroColor.tenue)
+                    .lineLimit(1)
+            }
         }
         .padding(.leading, 108)
         .padding(.trailing, 12)
@@ -282,31 +301,13 @@ struct TableroSesiones: View {
 
 // MARK: - 2a. Consumos
 
-/// Claude sale de Coucou cuando el medidor del plan esta activo; Vercel y
-/// GitHub son de muestra por ahora.
+/// Claude sale del uso del plan de Coucou, Vercel y GitHub de TableroFuentes
+/// (TableroArmado.consumos). Lo que no tiene fuente dice "sin datos".
 struct TableroConsumos: View {
-    @ObservedObject var state: AppState
-
-    private var consumos: [TableroConsumo] {
-        var lista = TableroMuestra.consumos
-        guard let uso = state.claudePlanUsage else { return lista }
-        if let w = uso.fiveHour, let i = lista.firstIndex(where: { $0.id == "claude-sesion" }) {
-            lista[i] = Self.consumoClaude(id: "claude-sesion", nombre: "Claude sesión", ventana: w)
-        }
-        if let w = uso.sevenDay, let i = lista.firstIndex(where: { $0.id == "claude-semana" }) {
-            lista[i] = Self.consumoClaude(id: "claude-semana", nombre: "Claude semana", ventana: w)
-        }
-        return lista
-    }
-
-    private static func consumoClaude(id: String, nombre: String, ventana: PlanWindow) -> TableroConsumo {
-        let pct = ClaudePlanGauge.effectivePct(ventana)
-        return TableroConsumo(id: id, nombre: nombre, valor: "\(Int(pct.rounded()))%",
-                              fraccion: pct / 100, colorHex: ClaudePlanGauge.color(for: pct))
-    }
+    let consumos: [TableroConsumo]
 
     var body: some View {
-        TableroTarjeta(titulo: "Consumos", punto: .bien) {
+        TableroTarjeta(titulo: "Consumos", punto: .bien, muestra: false) {
             VStack(alignment: .leading, spacing: 5) {
                 ForEach(consumos) { c in
                     VStack(alignment: .leading, spacing: 3) {
@@ -446,13 +447,14 @@ struct TableroFilaPendiente: View {
 
 struct TableroActividadTarjeta: View {
     let items: [TableroActividad]
+    var muestra: Bool = false
 
     private var ordenados: [TableroActividad] {
         items.sorted { $0.minutosAtras < $1.minutosAtras }
     }
 
     var body: some View {
-        TableroTarjeta(titulo: "Actividad", detalle: "deploys · pushes", punto: .bien) {
+        TableroTarjeta(titulo: "Actividad", detalle: "deploys · pushes", punto: .bien, muestra: muestra) {
             VStack(alignment: .leading, spacing: 7) {
                 ForEach(ordenados.prefix(4)) { a in
                     HStack(spacing: 6) {
@@ -486,18 +488,25 @@ struct TableroActividadTarjeta: View {
 
 struct TableroEquipoTarjeta: View {
     let equipo: TableroEquipo
+    var muestra: Bool = false
+
+    /// La carga se mide contra los nucleos del Mac: 1,0 por nucleo es lleno.
+    private var nucleos: Double { Double(max(ProcessInfo.processInfo.activeProcessorCount, 1)) }
 
     var body: some View {
-        TableroTarjeta(titulo: equipo.nombre, detalle: "carga \(tableroDecimal(equipo.carga))", punto: .bien) {
+        TableroTarjeta(titulo: equipo.nombre, detalle: "carga \(tableroDecimal(equipo.carga))", punto: .bien,
+                       muestra: muestra) {
             HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 9) {
                     TableroMedida(nombre: "Memoria", fraccion: equipo.memoria)
                     TableroMedida(nombre: "Disco", fraccion: equipo.disco)
                 }
                 VStack(alignment: .leading, spacing: 9) {
-                    TableroMedida(nombre: equipo.cargando ? "Batería · cargando" : "Batería",
-                                  fraccion: equipo.bateria, invertida: true)
-                    TableroMedida(nombre: "Carga", fraccion: min(equipo.carga / 8, 1),
+                    if let bateria = equipo.bateria {
+                        TableroMedida(nombre: equipo.cargando ? "Batería · cargando" : "Batería",
+                                      fraccion: bateria, invertida: true)
+                    }
+                    TableroMedida(nombre: "Carga", fraccion: min(equipo.carga / nucleos, 1),
                                   valor: tableroDecimal(equipo.carga))
                 }
             }

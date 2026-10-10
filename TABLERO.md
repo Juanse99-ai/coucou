@@ -15,13 +15,19 @@ deploys y pushes, el MacBook y una barra de vigilantes.
 
 | Tarjeta | Datos |
 |---|---|
-| Sesiones de Claude Code | Reales (las que ve Coucou en este Mac) |
-| Consumos: Claude sesión y semana | Reales si el medidor del plan está activo (Ajustes > Agents > Plan usage); si no, muestra |
-| Consumos: Vercel y GitHub | Muestra |
+| Sesiones de Claude Code | Reales: las sesiones locales que ve Coucou (Ajustes › Agentes › Instalar hooks) |
+| Consumos: Claude sesión y semana | Reales con Ajustes › Agentes › Uso del plan › Mostrar en el notch; si no, "sin datos" |
+| Consumos: Vercel | Deploys de las últimas 24 h sobre 100 (el límite diario de Vercel Hobby), con el token de Vercel |
+| Consumos: GitHub CI | Cuántos repos tienen el CI de la rama principal en verde, con el token de GitHub |
+| Actividad | Los últimos deploys de Vercel y el último push de cada repo con su CI |
+| MacBook | Real: carga, memoria, disco y batería del Mac |
+| Estado general y barra de vigilantes | Claude, GitHub, Vercel, batería y disco; solo los que tienen fuente conectada |
 | Pendientes | Lista propia guardada en el Mac: el check la marca hecha y el reloj la esconde una hora. Empieza con pendientes de ejemplo |
-| Estado general, Novedades, Actividad, MacBook, barra de vigilantes | Muestra |
+| Novedades | Muestra |
 
 Las tarjetas que todavía no tienen su fuente conectada llevan la etiqueta "muestra".
+Las fuentes solo trabajan con el tablero abierto: el Mac se mide cada 5 s y Vercel y
+GitHub se consultan cada 2 min. Con el panel cerrado no gastan nada.
 
 ## Probarlo sin Xcode
 
@@ -53,16 +59,13 @@ sesiones: modifica `~/.claude/settings.json` y guarda una copia antes.
 
 - `NotchBuddy/Sources/App/Tablero/TableroView.swift`: la vista y cada tarjeta.
 - `NotchBuddy/Sources/App/Tablero/TableroDatos.swift`: las estructuras de datos y los datos de muestra (`TableroMuestra`).
+- `NotchBuddy/Sources/App/Tablero/TableroFuentes.swift`: las fuentes reales (el Mac, Vercel, GitHub) y cómo se arma cada tarjeta.
 - `NotchBuddy/Sources/App/Tablero/PendientesStore.swift`: la lista de pendientes.
 - Cambios en archivos de Coucou: `IslandTypes.swift` (vista `.tablero` y su tamaño),
   `IslandViewContent.swift` (qué vista pinta), `IslandRootView.swift` (botón y alto).
 
 ## Lo que sigue
 
-Conectar cada tarjeta, una por una, llenando las mismas estructuras de `TableroDatos.swift`:
-
-1. MacBook: carga, memoria, disco y batería reales.
-2. Actividad: deploys de Vercel y pushes de GitHub (Coucou ya trae `VercelPoller` y `GithubPoller`).
-3. Novedades: cargador, Wi-Fi, deploys y pushes del día.
-4. Pendientes desde Recordatorios de Apple.
-5. Vigilantes y estado general a partir de lo anterior.
+1. Novedades: cargador, Wi-Fi, deploys y pushes del día.
+2. Pendientes desde Recordatorios de Apple.
+3. Wi-Fi y respaldo (Time Machine) como vigilantes.

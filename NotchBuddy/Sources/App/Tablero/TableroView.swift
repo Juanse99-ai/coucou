@@ -338,7 +338,9 @@ struct TableroNovedades: View {
     let novedades: [TableroNovedad]
 
     var body: some View {
-        TableroTarjeta(titulo: "Novedades", detalle: "\(novedades.count) hoy", punto: .falla) {
+        // Solo la cifra, como en Pendientes: "4 hoy" no cabe junto a la etiqueta
+        // "muestra" en la tarjeta angosta y salía cortado ("4 h...").
+        TableroTarjeta(titulo: "Novedades", detalle: "\(novedades.count)", punto: .falla) {
             VStack(alignment: .leading, spacing: 7) {
                 ForEach(novedades.prefix(5)) { n in
                     HStack(spacing: 6) {

@@ -248,8 +248,10 @@ enum TableroArmado {
     static func consumos(state: AppState, deploysHoy: Int?, repos: [TableroRepo]) -> [TableroConsumo] {
         var lista: [TableroConsumo] = []
         let uso = state.claudePlanUsage
-        lista.append(consumoClaude(id: "claude-sesion", nombre: "Claude sesión", ventana: uso?.fiveHour))
-        lista.append(consumoClaude(id: "claude-semana", nombre: "Claude semana", ventana: uso?.sevenDay))
+        lista.append(consumoClaude(id: "claude-sesion", nombre: "Claude sesión", ventana: uso?.fiveHour,
+                                   medido: uso?.updatedAt))
+        lista.append(consumoClaude(id: "claude-semana", nombre: "Claude semana", ventana: uso?.sevenDay,
+                                   medido: uso?.updatedAt))
 
         // Vercel Hobby permite 100 deploys al dia.
         if let n = deploysHoy {
@@ -282,10 +284,19 @@ enum TableroArmado {
         return lista
     }
 
-    private static func consumoClaude(id: String, nombre: String, ventana: PlanWindow?) -> TableroConsumo {
+    /// El uso del plan solo llega cuando corre Claude Code en el Mac (su linea de
+    /// estado); entre una sesion y otra queda el ultimo dato, con su edad
+    /// ("62% · 3 h"). Si la ventana ya se reinicio, vuelve a 0%.
+    private static func consumoClaude(id: String, nombre: String, ventana: PlanWindow?,
+                                      medido: Date?) -> TableroConsumo {
         guard let ventana else { return sinDatos(id: id, nombre: nombre) }
         let pct = ClaudePlanGauge.effectivePct(ventana)
-        return TableroConsumo(id: id, nombre: nombre, valor: "\(Int(pct.rounded()))%",
+        var valor = "\(Int(pct.rounded()))%"
+        if pct > 0, let medido {
+            let minutos = TableroTiempo.minutos(desde: medido)
+            if minutos >= 15 { valor += " · \(TableroTiempo.corto(minutos))" }
+        }
+        return TableroConsumo(id: id, nombre: nombre, valor: valor,
                               fraccion: pct / 100, colorHex: ClaudePlanGauge.color(for: pct))
     }
 

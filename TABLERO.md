@@ -16,7 +16,7 @@ deploys y pushes, el MacBook y una barra de vigilantes.
 | Tarjeta | Datos |
 |---|---|
 | Sesiones de Claude Code | Reales: las sesiones locales que ve Coucou (Ajustes › Agentes › Instalar hooks) |
-| Consumos: Claude sesión y semana | Reales con Ajustes › Agentes › Uso del plan › Mostrar en el notch; si no, "sin datos" |
+| Consumos: Claude sesión y semana | Reales con Ajustes › Agentes › Uso del plan › Mostrar en el notch. El dato llega cuando corre Claude Code en el Mac; entre sesiones queda el último con su edad ("62% · 3 h") y vuelve a 0% cuando se reinicia el límite. Sin datos aún: "sin datos" |
 | Consumos: Vercel | Deploys de las últimas 24 h sobre 100 (el límite diario de Vercel Hobby), con el token de Vercel |
 | Consumos: GitHub CI | Cuántos repos tienen el CI de la rama principal en verde, con el token de GitHub |
 | Actividad | Los últimos deploys de Vercel y el último push de cada repo con su CI |

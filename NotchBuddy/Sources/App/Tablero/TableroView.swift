@@ -367,38 +367,63 @@ struct TableroNovedades: View {
 
 // MARK: - 2c. Pendientes
 
-/// Check: hecho. Reloj: aparece de nuevo en una hora.
+/// Con Recordatorios: los recordatorios sin terminar; el check los marca hechos
+/// en la app Recordatorios y el reloj los esconde una hora en el tablero.
+/// Sin permiso: la muestra y el boton para conectar Recordatorios.
 struct TableroPendientes: View {
     @ObservedObject var store: PendientesStore
 
     var body: some View {
         let visibles = store.visibles()
-        TableroTarjeta(titulo: "Pendientes", detalle: "\(visibles.count)", punto: .aviso) {
-            if visibles.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(verbatim: "Nada pendiente")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(TableroColor.suave)
-                    Button(action: { store.restaurarMuestra() }) {
-                        Text(verbatim: "Volver a la muestra")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(TableroColor.texto)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(Color.white.opacity(0.08)))
+        let punto: TableroEstado = visibles.contains(where: { $0.vencido }) ? .falla : .aviso
+        TableroTarjeta(titulo: "Pendientes", detalle: "\(visibles.count)", punto: punto,
+                       muestra: !store.usaRecordatorios) {
+            VStack(alignment: .leading, spacing: 6) {
+                if store.usaRecordatorios {
+                    if visibles.isEmpty {
+                        Text(verbatim: store.cargado ? "Nada pendiente" : "Leyendo Recordatorios…")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(TableroColor.suave)
                     }
-                    .buttonStyle(.plain)
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(visibles.prefix(3)) { p in
-                        TableroFilaPendiente(pendiente: p,
-                                             onHecho: { store.completar(p.id) },
-                                             onLuego: { store.posponer(p.id) })
+                    filas(visibles, cuantas: 3)
+                } else {
+                    if visibles.isEmpty {
+                        boton("Volver a la muestra") { store.restaurarMuestra() }
+                    }
+                    filas(visibles, cuantas: 2)
+                    if store.accesoNegado {
+                        Text(verbatim: "Actívalo en Configuración › Privacidad y seguridad › Recordatorios")
+                            .font(.system(size: 10))
+                            .foregroundColor(TableroColor.suave)
+                            .lineLimit(2)
+                    } else {
+                        boton("Usar mis Recordatorios") {
+                            Task { await store.conectarRecordatorios() }
+                        }
                     }
                 }
             }
         }
+    }
+
+    private func filas(_ visibles: [Pendiente], cuantas: Int) -> some View {
+        ForEach(visibles.prefix(cuantas)) { p in
+            TableroFilaPendiente(pendiente: p,
+                                 onHecho: { store.completar(p.id) },
+                                 onLuego: { store.posponer(p.id) })
+        }
+    }
+
+    private func boton(_ texto: String, accion: @escaping () -> Void) -> some View {
+        Button(action: accion) {
+            Text(verbatim: texto)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(TableroColor.texto)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color.white.opacity(0.08)))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -410,7 +435,7 @@ struct TableroFilaPendiente: View {
     var body: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(Color(hex: "#60A5FA"))
+                .fill(Color(hex: pendiente.vencido ? TableroEstado.falla.colorHex : "#60A5FA"))
                 .frame(width: 5, height: 5)
             VStack(alignment: .leading, spacing: 1) {
                 Text(verbatim: pendiente.titulo)

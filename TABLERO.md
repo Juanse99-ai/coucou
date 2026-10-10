@@ -22,12 +22,12 @@ deploys y pushes, el MacBook y una barra de vigilantes.
 | Actividad | Los últimos deploys de Vercel y el último push de cada repo con su CI |
 | MacBook | Real: carga, memoria, disco y batería del Mac |
 | Estado general y barra de vigilantes | Claude, GitHub, Vercel, batería y disco; solo los que tienen fuente conectada |
-| Pendientes | Lista propia guardada en el Mac: el check la marca hecha y el reloj la esconde una hora. Empieza con pendientes de ejemplo |
+| Pendientes | Recordatorios de Apple sin terminar (botón "Usar mis Recordatorios" en la tarjeta): el check los marca hechos en Recordatorios y el reloj los esconde una hora en el tablero. Lo que se agrega en el iPhone o con Siri aparece en un minuto. Sin permiso, muestra |
 | Novedades | Muestra |
 
 Las tarjetas que todavía no tienen su fuente conectada llevan la etiqueta "muestra".
-Las fuentes solo trabajan con el tablero abierto: el Mac se mide cada 5 s y Vercel y
-GitHub se consultan cada 2 min. Con el panel cerrado no gastan nada.
+Las fuentes solo trabajan con el tablero abierto: el Mac se mide cada 5 s, Recordatorios
+se lee cada minuto y Vercel y GitHub se consultan cada 2 min. Con el panel cerrado no gastan nada.
 
 ## Probarlo sin Xcode
 
@@ -61,11 +61,11 @@ sesiones: modifica `~/.claude/settings.json` y guarda una copia antes.
 - `NotchBuddy/Sources/App/Tablero/TableroDatos.swift`: las estructuras de datos y los datos de muestra (`TableroMuestra`).
 - `NotchBuddy/Sources/App/Tablero/TableroFuentes.swift`: las fuentes reales (el Mac, Vercel, GitHub) y cómo se arma cada tarjeta.
 - `NotchBuddy/Sources/App/Tablero/PendientesStore.swift`: la lista de pendientes.
+- `NotchBuddy/Sources/App/Tablero/RecordatoriosLector.swift`: la lectura de Recordatorios (EventKit).
 - Cambios en archivos de Coucou: `IslandTypes.swift` (vista `.tablero` y su tamaño),
   `IslandViewContent.swift` (qué vista pinta), `IslandRootView.swift` (botón y alto).
 
 ## Lo que sigue
 
 1. Novedades: cargador, Wi-Fi, deploys y pushes del día.
-2. Pendientes desde Recordatorios de Apple.
-3. Wi-Fi y respaldo (Time Machine) como vigilantes.
+2. Wi-Fi y respaldo (Time Machine) como vigilantes.

@@ -64,19 +64,20 @@ jobs:
           path: Coucou-Tablero.zip
           retention-days: 14
 
-      # Si el project.pbxproj de la rama va atrasado frente a project.yml, sube
-      # el que generó XcodeGen (ya compilado arriba): así el ZIP de la rama abre
+      # Si el project.pbxproj o los Info.plist de la rama van atrasados frente a
+      # project.yml, sube lo que generó XcodeGen (ya compilado arriba): así el ZIP de la rama abre
       # y compila en Xcode sin instalar XcodeGen. Un push hecho con el token de
       # la tarea no vuelve a lanzar la tarea.
       - name: Subir el proyecto de Xcode regenerado
         if: github.event_name == 'push'
         run: |
-          if git diff --quiet -- NotchBuddy/NotchBuddy.xcodeproj/project.pbxproj; then
+          ARCHIVOS="NotchBuddy/NotchBuddy.xcodeproj/project.pbxproj NotchBuddy/Resources/Info.plist NotchBuddy/Resources/InfoAppStore.plist"
+          if git diff --quiet -- $ARCHIVOS; then
             echo "El proyecto de la rama ya está al día."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add NotchBuddy/NotchBuddy.xcodeproj/project.pbxproj
+          git add $ARCHIVOS
           git commit -m "Tablero: proyecto de Xcode regenerado con XcodeGen"
           git push origin HEAD:${{ github.ref_name }}

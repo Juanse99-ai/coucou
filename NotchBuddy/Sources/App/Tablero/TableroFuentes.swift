@@ -26,16 +26,21 @@ final class TableroFuentes: ObservableObject {
     @Published private(set) var revisado: Date?
 
     private var ultimaRed = Date.distantPast
+    private var ultimosPendientes = Date.distantPast
     private var ultimoDisco = Date.distantPast
     private var disco: Double = 0
 
     private init() {}
 
-    /// Mide el Mac cada 5 s y consulta Vercel y GitHub cada 2 min, hasta que
-    /// cancelen la tarea.
+    /// Mide el Mac cada 5 s, lee Recordatorios cada minuto y consulta Vercel y
+    /// GitHub cada 2 min, hasta que cancelen la tarea.
     func vigilar() async {
         while !Task.isCancelled {
             medirEquipo()
+            if Date().timeIntervalSince(ultimosPendientes) >= 60 {
+                ultimosPendientes = Date()
+                await PendientesStore.shared.refrescar()
+            }
             if Date().timeIntervalSince(ultimaRed) >= 120 {
                 ultimaRed = Date()
                 await refrescarRed()

@@ -24,10 +24,11 @@ deploys y pushes, el MacBook y una barra de vigilantes.
 | Estado general y barra de vigilantes | Internet, Claude, GitHub, Vercel, batería, respaldo de Time Machine y disco; solo los que tienen fuente. Cada uno dice qué pasa ("Disco: casi lleno (93%)") |
 | Pendientes | Recordatorios de Apple sin terminar (botón "Usar mis Recordatorios" en la tarjeta): el check los marca hechos en Recordatorios y el reloj los esconde una hora en el tablero. Lo que se agrega en el iPhone o con Siri aparece en un minuto. Sin permiso, muestra |
 | Novedades | Lo que pasó hoy: cargador conectado o quitado, internet caído o de vuelta (se anotan desde que abre Coucou, aunque el tablero esté cerrado), deploys de Vercel y pushes de GitHub |
+| Taller hoy | De la app del taller (`/api/tablero`, solo cifras, sin datos de clientes): carros en el taller con el desglose por paso, listos para entregar (completados sin factura) e ingresos del mes. Se conecta copiando la clave `TABLERO_TOKEN` y tocando "Pegar clave del taller" en la tarjeta; queda en el llavero. Si la red falla, deja las últimas cifras y dice de cuándo son. También es un vigilante |
 
 Solo Pendientes, mientras no se conecte Recordatorios, lleva la etiqueta "muestra".
 Las fuentes solo trabajan con el tablero abierto: el Mac se mide cada 5 s, Recordatorios
-se lee cada minuto y Vercel y GitHub se consultan cada 2 min. Con el panel cerrado no gastan nada.
+se lee cada minuto y Vercel, GitHub y el taller se consultan cada 2 min. Con el panel cerrado no gastan nada.
 
 ## Probarlo sin Xcode
 
@@ -59,14 +60,11 @@ sesiones: modifica `~/.claude/settings.json` y guarda una copia antes.
 
 - `NotchBuddy/Sources/App/Tablero/TableroView.swift`: la vista y cada tarjeta.
 - `NotchBuddy/Sources/App/Tablero/TableroDatos.swift`: las estructuras de datos y los datos de muestra (`TableroMuestra`).
-- `NotchBuddy/Sources/App/Tablero/TableroFuentes.swift`: las fuentes reales (el Mac, Vercel, GitHub) y cómo se arma cada tarjeta.
+- `NotchBuddy/Sources/App/Tablero/TableroFuentes.swift`: las fuentes reales (el Mac, Vercel, GitHub, el taller) y cómo se arma cada tarjeta.
 - `NotchBuddy/Sources/App/Tablero/PendientesStore.swift`: la lista de pendientes.
 - `NotchBuddy/Sources/App/Tablero/RecordatoriosLector.swift`: la lectura de Recordatorios (EventKit).
 - `NotchBuddy/Sources/App/Tablero/TableroEventos.swift`: cargador e internet (avisos del sistema, sin consultas periódicas).
 - Cambios en archivos de Coucou: `IslandTypes.swift` (vista `.tablero` y su tamaño),
   `IslandViewContent.swift` (qué vista pinta), `IslandRootView.swift` (botón y alto),
-  `AppDelegate.swift` (arranca `TableroEventos`).
-
-## Lo que sigue
-
-1. Tarjeta "Taller hoy": OT abiertas, carros listos para entregar y ventas del día, desde la app del taller (necesita una consulta de solo lectura en esa app).
+  `AppDelegate.swift` (arranca `TableroEventos`), `ClaudeService.swift` (la clave
+  del taller en la lista del llavero).

@@ -5,6 +5,7 @@ import SwiftUI
 // La vista grande del panel (IslandView.tablero), armada como el panel de la
 // foto de referencia:
 //   1. Estado general (con Mochi a la izquierda) y sesiones de Claude Code.
+//   1b. Taller hoy: las cifras de la app del taller.
 //   2. Consumos, Novedades y Pendientes.
 //   3. Deploys y pushes, y el MacBook.
 //   4. Barra de vigilantes y equipos.
@@ -29,7 +30,9 @@ struct TableroView: View {
 
     var body: some View {
         let vigilantes = TableroArmado.vigilantes(state: state, repos: fuentes.repos, equipo: fuentes.equipo,
-                                                  conectado: eventos.conectado, respaldo: fuentes.ultimoRespaldo)
+                                                  conectado: eventos.conectado, respaldo: fuentes.ultimoRespaldo,
+                                                  tallerProblema: fuentes.tallerProblema,
+                                                  tallerConectado: fuentes.tieneClaveTaller)
         let actividad = TableroArmado.actividad(state: state, repos: fuentes.repos)
         VStack(spacing: separacion) {
             HStack(spacing: separacion) {
@@ -38,6 +41,9 @@ struct TableroView: View {
                 TableroSesiones(state: state, equipo: equipo)
             }
             .frame(height: 98)
+
+            TableroTallerTarjeta(fuentes: fuentes)
+                .frame(height: 64)
 
             HStack(spacing: separacion) {
                 TableroConsumos(consumos: TableroArmado.consumos(state: state, deploysHoy: fuentes.deploysHoy,
@@ -53,7 +59,7 @@ struct TableroView: View {
                                         muestra: actividad.isEmpty)
                 TableroEquipoTarjeta(equipo: equipo, muestra: fuentes.equipo == nil)
             }
-            .frame(height: 128)
+            .frame(height: 120)
 
             TableroBarra(vigilantes: vigilantes, equipo: equipo)
                 .frame(height: 34)
@@ -299,6 +305,113 @@ struct TableroSesiones: View {
         case .sleeping:  return "dormida"
         case .idle, .dizzy: return "en espera"
         }
+    }
+}
+
+// MARK: - 1c. Taller hoy
+
+/// Las cifras de la app del taller (GET /api/tablero, TableroFuentes.taller):
+/// carros adentro con su desglose por paso, listos para entregar e ingresos del
+/// mes. Sin clave muestra el boton para pegarla; si la red falla deja las
+/// ultimas cifras y dice de cuando son.
+struct TableroTallerTarjeta: View {
+    @ObservedObject var fuentes: TableroFuentes
+
+    private var leyendo: Bool {
+        fuentes.taller == nil && fuentes.tieneClaveTaller && fuentes.tallerProblema == nil
+    }
+
+    private var punto: TableroEstado {
+        if !fuentes.tieneClaveTaller { return .apagado }
+        return fuentes.tallerProblema == nil ? .bien : .falla
+    }
+
+    /// Junto al titulo: el problema y, si hay cifras viejas, de cuando son.
+    private var detalle: String? {
+        guard let problema = fuentes.tallerProblema else { return nil }
+        guard fuentes.taller != nil, let leido = fuentes.tallerLeido else { return problema }
+        return "\(problema) · \(TableroTiempo.hace(TableroTiempo.minutos(desde: leido)))"
+    }
+
+    private var linea: String {
+        if let taller = fuentes.taller { return taller.desglose }
+        if let aviso = fuentes.avisoClaveTaller { return aviso }
+        if !fuentes.tieneClaveTaller { return "Copia la clave del taller y toca Pegar clave" }
+        if leyendo { return "Leyendo el taller…" }
+        return "Se vuelve a intentar cada 2 minutos"
+    }
+
+    var body: some View {
+        CardBackground(wash: nil) {
+            HStack(spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color(hex: punto.colorHex))
+                            .frame(width: 7, height: 7)
+                        Text(verbatim: "Taller hoy")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(TableroColor.texto)
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                        if let detalle {
+                            Text(verbatim: detalle)
+                                .font(.system(size: 11))
+                                .foregroundColor(TableroColor.suave)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
+                    Text(verbatim: linea)
+                        .font(.system(size: 11))
+                        .foregroundColor(TableroColor.suave)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                Spacer(minLength: 8)
+                if let taller = fuentes.taller {
+                    TableroCifra(valor: "\(taller.enTaller)", rotulo: "en el taller")
+                    TableroCifra(valor: "\(taller.listosParaEntregar)", rotulo: "listos para entregar")
+                    TableroCifra(valor: TableroTaller.pesos(taller.ingresosMes), rotulo: "ingresos del mes")
+                } else if !leyendo {
+                    Button {
+                        Task { await fuentes.pegarClaveTaller() }
+                    } label: {
+                        Text(verbatim: fuentes.tieneClaveTaller ? "Pegar otra clave" : "Pegar clave del taller")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(TableroColor.texto)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.white.opacity(0.08)))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Guarda en el llavero la clave que copiaste (TABLERO_TOKEN)")
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+/// Una cifra grande con su rotulo debajo, alineada a la derecha.
+struct TableroCifra: View {
+    let valor: String
+    let rotulo: String
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 1) {
+            Text(verbatim: valor)
+                .font(.system(size: 17, weight: .semibold))
+                .monospacedDigit()
+                .foregroundColor(TableroColor.texto)
+                .lineLimit(1)
+            Text(verbatim: rotulo)
+                .font(.system(size: 10))
+                .foregroundColor(TableroColor.suave)
+                .lineLimit(1)
+        }
+        .fixedSize()
     }
 }
 

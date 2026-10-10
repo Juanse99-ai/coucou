@@ -107,6 +107,45 @@ struct TableroRepo: Identifiable, Sendable {
     let ci: CI
 }
 
+/// Las cifras del taller, de la app del taller (GET /api/tablero). Solo
+/// numeros: ningun dato de clientes.
+struct TableroTaller: Decodable, Sendable {
+    struct Paso: Decodable, Sendable, Identifiable {
+        /// Como se guarda ("En Progreso"); el rotulo es como se lee ("En reparación").
+        let estado: String
+        let rotulo: String
+        let n: Int
+        var id: String { estado }
+    }
+    let enTaller: Int
+    let pasos: [Paso]
+    let programados: Int
+    let listosParaEntregar: Int
+    let ingresosMes: Int
+    let otDelMes: Int
+
+    /// "2 recibidos · 1 esperando repuestos · 3 en reparación · 1 programado".
+    var desglose: String {
+        var partes = pasos.map { "\($0.n) \($0.rotulo.lowercased())" }
+        if partes.isEmpty { partes.append("Sin carros en el taller") }
+        if programados > 0 {
+            partes.append(programados == 1 ? "1 programado" : "\(programados) programados")
+        }
+        return partes.joined(separator: " · ")
+    }
+
+    /// Pesos con punto de miles, como en la app del taller: 12450000 -> "$ 12.450.000".
+    static func pesos(_ valor: Int) -> String {
+        let cifras = String(abs(valor))
+        var texto = ""
+        for (i, c) in cifras.enumerated() {
+            if i > 0 && (cifras.count - i) % 3 == 0 { texto.append(".") }
+            texto.append(c)
+        }
+        return (valor < 0 ? "-$ " : "$ ") + texto
+    }
+}
+
 /// Un vigilante de la barra de abajo: algo que el panel revisa solo.
 struct TableroVigilante: Identifiable, Sendable {
     let id: String

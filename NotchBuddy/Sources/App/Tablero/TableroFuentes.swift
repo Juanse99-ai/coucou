@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import IOKit.ps
 
 // MARK: - Tablero: fuentes reales
@@ -26,6 +26,17 @@ final class TableroFuentes: ObservableObject {
     @Published private(set) var revisado: Date?
     /// Respaldo mas reciente de Time Machine. nil si no hay o no se pudo leer.
     @Published private(set) var ultimoRespaldo: Date?
+    /// Las cifras del taller (la ultima lectura buena se queda si falla la red).
+    @Published private(set) var taller: TableroTaller?
+    @Published private(set) var tallerLeido: Date?
+    /// "Clave inválida" o "Sin conexión"; nil si todo bien.
+    @Published private(set) var tallerProblema: String?
+    /// Lo que se copio no parece la clave. Solo para la tarjeta: no es una falla del taller.
+    @Published private(set) var avisoClaveTaller: String?
+
+    /// Ya hay una clave del taller guardada en el llavero.
+    var tieneClaveTaller: Bool { KeychainStore.shared.get(Self.claveTaller) != nil }
+    static let claveTaller = "taller-tablero-token"
 
     private var ultimaRed = Date.distantPast
     private var ultimosPendientes = Date.distantPast
@@ -79,6 +90,43 @@ final class TableroFuentes: ObservableObject {
         // token, se borra.
         if let deploys { deploysHoy = deploys } else if tokenVercel == nil { deploysHoy = nil }
         if let lista { repos = lista } else if tokenGitHub == nil { repos = [] }
+        await refrescarTaller()
+    }
+
+    private func refrescarTaller() async {
+        guard let token = KeychainStore.shared.get(Self.claveTaller) else {
+            taller = nil
+            tallerProblema = nil
+            return
+        }
+        switch await TableroRed.taller(token: token) {
+        case .listo(let cifras):
+            taller = cifras
+            tallerLeido = Date()
+            tallerProblema = nil
+        case .claveInvalida:
+            taller = nil
+            tallerProblema = "Clave inválida"
+        case .sinConexion:
+            tallerProblema = "Sin conexión"
+        }
+    }
+
+    /// Guarda la clave del taller que el usuario copio (TABLERO_TOKEN) y lee las cifras.
+    func pegarClaveTaller() async {
+        let texto = (NSPasteboard.general.string(forType: .string) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let valida = texto.count >= 32 && texto.unicodeScalars.allSatisfy {
+            CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_"
+        }
+        guard valida else {
+            avisoClaveTaller = "Copia primero la clave del taller"
+            return
+        }
+        KeychainStore.shared.set(Self.claveTaller, value: texto)
+        avisoClaveTaller = nil
+        tallerProblema = nil
+        await refrescarTaller()
     }
 }
 
@@ -164,6 +212,28 @@ enum TableroRed {
               let lista = raiz["deployments"] as? [[String: Any]] else { return nil }
         guard !filtro.isEmpty else { return lista.count }
         return lista.filter { ($0["name"] as? String).map(filtro.contains) ?? false }.count
+    }
+
+    enum RespuestaTaller: Sendable {
+        case listo(TableroTaller)
+        case claveInvalida
+        case sinConexion
+    }
+
+    /// La app del taller en produccion (dominio de Vercel del proyecto).
+    static let urlTaller = URL(string: "https://taller-automotriz-app.vercel.app/api/tablero")!
+
+    /// Las cifras del taller con la clave de solo lectura (TABLERO_TOKEN).
+    static func taller(token: String) async -> RespuestaTaller {
+        var req = URLRequest(url: urlTaller, timeoutInterval: 15)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        guard let respuesta = try? await URLSession.shared.data(for: req) else { return .sinConexion }
+        let codigo = (respuesta.1 as? HTTPURLResponse)?.statusCode ?? 0
+        if codigo == 401 { return .claveInvalida }
+        guard codigo == 200,
+              let cifras = try? JSONDecoder().decode(TableroTaller.self, from: respuesta.0) else { return .sinConexion }
+        return .listo(cifras)
     }
 
     /// Solo pide datos del repo (nombre, ultimo push) y el estado del CI: basta
@@ -348,8 +418,15 @@ enum TableroArmado {
     /// GitHub por el CI, Vercel por el ultimo deploy de cada proyecto, y la
     /// bateria y el disco del Mac.
     static func vigilantes(state: AppState, repos: [TableroRepo], equipo: TableroEquipo?,
-                           conectado: Bool?, respaldo: Date?) -> [TableroVigilante] {
+                           conectado: Bool?, respaldo: Date?, tallerProblema: String?,
+                           tallerConectado: Bool) -> [TableroVigilante] {
         var lista: [TableroVigilante] = []
+
+        if tallerConectado {
+            lista.append(TableroVigilante(id: "taller", nombre: "Taller",
+                                          estado: tallerProblema == nil ? .bien : .falla,
+                                          problema: tallerProblema?.lowercased()))
+        }
 
         if let conectado {
             lista.append(TableroVigilante(id: "internet", nombre: "Internet",

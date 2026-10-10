@@ -180,8 +180,8 @@ struct TableroEstadoGeneral: View {
     }
 
     private var titulo: String {
-        if let primero = conFalla.first { return "\(primero.nombre): hay fallas" }
-        if let primero = conAviso.first { return "\(primero.nombre): revisar" }
+        if let primero = conFalla.first { return primero.rotulo }
+        if let primero = conAviso.first { return primero.rotulo }
         return "Todo en orden"
     }
 
@@ -559,7 +559,7 @@ struct TableroBarra: View {
         HStack(spacing: 14) {
             TableroPunto(texto: "\(bien) vigilantes OK", estado: .bien)
             ForEach(malos.prefix(2)) { v in
-                TableroPunto(texto: v.estado == .falla ? "\(v.nombre): hay fallas" : "\(v.nombre): revisar",
+                TableroPunto(texto: v.rotulo,
                              estado: v.estado)
             }
             Spacer(minLength: 8)

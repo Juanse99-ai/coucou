@@ -296,7 +296,8 @@ enum TableroArmado {
 
         if let uso = state.claudePlanUsage, let pct = ClaudePlanGauge.dominantPct(uso) {
             lista.append(TableroVigilante(id: "claude", nombre: "Claude",
-                                          estado: pct >= 90 ? .falla : (pct >= 75 ? .aviso : .bien)))
+                                          estado: pct >= 90 ? .falla : (pct >= 75 ? .aviso : .bien),
+                                          problema: "al \(Int(pct.rounded()))% del límite"))
         }
 
         if !repos.isEmpty {
@@ -308,7 +309,8 @@ enum TableroArmado {
             } else {
                 estado = .bien
             }
-            lista.append(TableroVigilante(id: "github", nombre: "GitHub", estado: estado))
+            lista.append(TableroVigilante(id: "github", nombre: "GitHub", estado: estado,
+                                          problema: estado == .falla ? "CI con fallas" : "CI corriendo"))
         }
 
         let filtro = state.vercelProjectFilter
@@ -318,17 +320,21 @@ enum TableroArmado {
             var vistos = Set<String>()
             let ultimos = deploys.filter { vistos.insert($0.projectName).inserted }
             let falla = ultimos.contains(where: { !$0.isSuccess && $0.state != "CANCELED" })
-            lista.append(TableroVigilante(id: "vercel", nombre: "Vercel", estado: falla ? .falla : .bien))
+            lista.append(TableroVigilante(id: "vercel", nombre: "Vercel", estado: falla ? .falla : .bien,
+                                          problema: "un deploy falló"))
         }
 
         if let equipo {
             if let nivel = equipo.bateria {
                 let estado: TableroEstado = equipo.cargando ? .bien
                                           : nivel < 0.1 ? .falla : (nivel < 0.2 ? .aviso : .bien)
-                lista.append(TableroVigilante(id: "bateria", nombre: "Batería", estado: estado))
+                lista.append(TableroVigilante(id: "bateria", nombre: "Batería", estado: estado,
+                                              problema: "baja (\(TableroTiempo.porcentaje(nivel)))"))
             }
+            // Un disco casi lleno no es una falla del disco: se dice lo que pasa.
             lista.append(TableroVigilante(id: "disco", nombre: "Disco",
-                                          estado: equipo.disco > 0.9 ? .falla : (equipo.disco > 0.8 ? .aviso : .bien)))
+                                          estado: equipo.disco > 0.9 ? .falla : (equipo.disco > 0.8 ? .aviso : .bien),
+                                          problema: "casi lleno (\(TableroTiempo.porcentaje(equipo.disco)))"))
         }
         return lista
     }

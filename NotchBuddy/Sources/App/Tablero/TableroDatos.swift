@@ -112,6 +112,13 @@ struct TableroVigilante: Identifiable, Sendable {
     let id: String
     let nombre: String
     let estado: TableroEstado
+    /// Que pasa cuando no esta bien: "casi lleno (93%)", "CI con fallas"...
+    var problema: String? = nil
+
+    /// Para el titulo y la barra: "Disco: casi lleno (93%)".
+    var rotulo: String {
+        "\(nombre): \(problema ?? (estado == .falla ? "hay fallas" : "revisar"))"
+    }
 }
 
 // MARK: - Tiempos

@@ -48,6 +48,10 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Coucou uses the microphone when you dictate a message in the chat.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Coucou muestra tus recordatorios pendientes en el tablero y marca como hechos los que toques ahí.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Coucou muestra tus recordatorios pendientes en el tablero y marca como hechos los que toques ahí.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Coucou turns your voice into the text of a chat message.</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>

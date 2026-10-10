@@ -46,6 +46,10 @@
 	</dict>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Coucou muestra tus recordatorios pendientes en el tablero y marca como hechos los que toques ahí.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Coucou muestra tus recordatorios pendientes en el tablero y marca como hechos los que toques ahí.</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
 </dict>

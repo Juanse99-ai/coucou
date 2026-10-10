@@ -458,8 +458,8 @@ struct IslandContentView: View {
                     let active = state.view == v
                     // Views that fill available height instead of the fixed 98pt content frame:
                     // chat (prompt) is always flexible; mail is flexible only when active so
-                    // it doesn't push the ZStack taller when inactive.
-                    let isTall = v == .prompt || (v == .mail && active)
+                    // it doesn't push the ZStack taller when inactive. Same for the tablero.
+                    let isTall = v == .prompt || (v == .mail && active) || (v == .tablero && active)
                     let anim: Animation = active
                         ? .spring(response: 0.4, dampingFraction: 0.8).delay(0.16)
                         : .easeIn(duration: 0.16)
@@ -501,6 +501,7 @@ struct IslandHeader: View {
             // Left: tab capsules
             HStack(spacing: 5) {
                 TabButton(icon: "house.fill", view: .overview, state: state)
+                TabButton(icon: "square.grid.2x2.fill", view: .tablero, state: state)
                 TabButton(icon: "bubble.left.fill", view: .prompt, state: state, preAction: {
                     #if !APPSTORE
                     if state.promptContext == nil {

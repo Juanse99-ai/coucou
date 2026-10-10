@@ -1,0 +1,83 @@
+name: Tablero (app para probar)
+
+# Compila Coucou con el Tablero en un Mac de GitHub y deja la app lista para
+# descargar: Actions > la corrida > Artifacts > Coucou-Tablero. Sirve para
+# probarla sin instalar Xcode. Firma ad hoc (sin cuenta de desarrollador): la
+# primera vez se abre con clic derecho > Abrir.
+on:
+  push:
+    branches: [claude/tablero]
+  workflow_dispatch:
+
+jobs:
+  app:
+    runs-on: macos-latest
+    # Escribe en la rama solo para subir el proyecto de Xcode regenerado.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: cd NotchBuddy && xcodegen
+
+      # Sin PHONE_LINK: la sincronizacion con el iPhone usa el iCloud de la
+      # cuenta de desarrollador de Coucou, y una app firmada ad hoc no puede
+      # tener ese permiso; con PHONE_LINK, CloudProbe crea su CKContainer al
+      # arrancar y macOS cierra la app ("trace trap").
+      - name: Build Release (Apple Silicon e Intel, sin firma, sin iPhone)
+        run: |
+          xcodebuild \
+            -project NotchBuddy/NotchBuddy.xcodeproj \
+            -scheme NotchBuddy \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build \
+            build \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS=
+
+      - name: Firma ad hoc y zip
+        run: |
+          APP=$(find build/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
+          echo "App: $APP"
+          codesign --force --deep --sign - --entitlements NotchBuddy/Resources/Coucou.entitlements "$APP"
+          codesign --verify --deep --strict "$APP"
+          lipo -archs "$APP/Contents/MacOS/"* || true
+          # La app firmada ad hoc no puede abrir iCloud: si quedo algo de la
+          # sincronizacion con el iPhone, se cerraria al arrancar.
+          if nm "$APP/Contents/MacOS/Coucou" | grep -q CloudProbe; then
+            echo "::error::La app trae CloudProbe (PHONE_LINK) y se cerraria al abrir"
+            exit 1
+          fi
+          echo "Sin PHONE_LINK: ok"
+          ditto -c -k --keepParent "$APP" Coucou-Tablero.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Coucou-Tablero
+          path: Coucou-Tablero.zip
+          retention-days: 14
+
+      # Si el project.pbxproj o los Info.plist de la rama van atrasados frente a
+      # project.yml, sube lo que generó XcodeGen (ya compilado arriba): así el ZIP de la rama abre
+      # y compila en Xcode sin instalar XcodeGen. Un push hecho con el token de
+      # la tarea no vuelve a lanzar la tarea.
+      - name: Subir el proyecto de Xcode regenerado
+        if: github.event_name == 'push'
+        run: |
+          ARCHIVOS="NotchBuddy/NotchBuddy.xcodeproj/project.pbxproj NotchBuddy/Resources/Info.plist NotchBuddy/Resources/InfoAppStore.plist"
+          if git diff --quiet -- $ARCHIVOS; then
+            echo "El proyecto de la rama ya está al día."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $ARCHIVOS
+          git commit -m "Tablero: proyecto de Xcode regenerado con XcodeGen"
+          git push origin HEAD:${{ github.ref_name }}

@@ -24,7 +24,11 @@ jobs:
       - name: Generate project
         run: cd NotchBuddy && xcodegen
 
-      - name: Build Release (Apple Silicon e Intel, sin firma)
+      # Sin PHONE_LINK: la sincronizacion con el iPhone usa el iCloud de la
+      # cuenta de desarrollador de Coucou, y una app firmada ad hoc no puede
+      # tener ese permiso; con PHONE_LINK, CloudProbe crea su CKContainer al
+      # arrancar y macOS cierra la app ("trace trap").
+      - name: Build Release (Apple Silicon e Intel, sin firma, sin iPhone)
         run: |
           xcodebuild \
             -project NotchBuddy/NotchBuddy.xcodeproj \
@@ -35,7 +39,8 @@ jobs:
             build \
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_REQUIRED=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS=
 
       - name: Firma ad hoc y zip
         run: |

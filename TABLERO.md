@@ -23,6 +23,15 @@ deploys y pushes, el MacBook y una barra de vigilantes.
 
 Las tarjetas que todavía no tienen su fuente conectada llevan la etiqueta "muestra".
 
+## Probarlo sin Xcode
+
+Cada cambio en la rama `claude/tablero` lo compila un Mac de GitHub (`.github/workflows/tablero.yml`).
+
+1. En GitHub, pestaña **Actions** › **Tablero (app para probar)** › la corrida más reciente en verde.
+2. Abajo, en **Artifacts**, descarga **Coucou-Tablero** y descomprímelo (adentro viene `Coucou-Tablero.zip`: descomprímelo también).
+3. Arrastra **Coucou.app** a Aplicaciones.
+4. La primera vez: clic derecho › **Abrir** › Abrir. Si macOS no deja, Configuración del Sistema › Privacidad y seguridad › **Abrir de todas formas**. Pasa porque la app va firmada ad hoc, sin cuenta de desarrollador de Apple.
+
 ## Compilar en el MacBook
 
 Requisitos de Coucou: macOS 15 o más nuevo y Xcode 16 o más nuevo (gratis en la App Store).

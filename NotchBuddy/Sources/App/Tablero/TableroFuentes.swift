@@ -24,6 +24,8 @@ final class TableroFuentes: ObservableObject {
     @Published private(set) var repos: [TableroRepo] = []
     /// Ultima vuelta completa de vigilar().
     @Published private(set) var revisado: Date?
+    /// Respaldo mas reciente de Time Machine. nil si no hay o no se pudo leer.
+    @Published private(set) var ultimoRespaldo: Date?
 
     private var ultimaRed = Date.distantPast
     private var ultimosPendientes = Date.distantPast
@@ -54,6 +56,7 @@ final class TableroFuentes: ObservableObject {
         // El disco cambia despacio y medirlo cuesta mas: una vez por minuto.
         if Date().timeIntervalSince(ultimoDisco) >= 60 {
             disco = TableroEquipoLector.disco()
+            ultimoRespaldo = TableroEquipoLector.ultimoRespaldo()
             ultimoDisco = Date()
         }
         let bateria = TableroEquipoLector.bateria()
@@ -117,6 +120,14 @@ enum TableroEquipoLector {
               let total = valores.volumeTotalCapacity, total > 0,
               let libre = valores.volumeAvailableCapacityForImportantUsage else { return 0 }
         return min(max(1 - Double(libre) / Double(total), 0), 1)
+    }
+
+    /// Fecha del respaldo mas reciente de Time Machine. nil si no hay respaldos
+    /// configurados o no se pudo leer; entonces no hay vigilante de respaldo.
+    static func ultimoRespaldo() -> Date? {
+        guard let prefs = NSDictionary(contentsOfFile: "/Library/Preferences/com.apple.TimeMachine.plist"),
+              let destinos = prefs["Destinations"] as? [[String: Any]] else { return nil }
+        return destinos.flatMap { ($0["SnapshotDates"] as? [Date]) ?? [] }.max()
     }
 
     /// Nivel de la bateria interna (0...1) y si esta cargando. nil sin bateria.
@@ -244,6 +255,35 @@ enum TableroArmado {
         return lista.sorted { $0.minutosAtras < $1.minutosAtras }
     }
 
+    /// Lo que paso hoy, lo mas reciente primero: cargador e internet
+    /// (TableroEventos), deploys de Vercel y pushes de GitHub.
+    static func novedades(state: AppState, repos: [TableroRepo], eventos: [TableroEventos.Evento],
+                          ahora: Date = Date()) -> [TableroNovedad] {
+        let inicio = Calendar.current.startOfDay(for: ahora)
+        var lista: [(fecha: Date, novedad: TableroNovedad)] = []
+        func sumar(_ id: String, _ texto: String, _ estado: TableroEstado, _ fecha: Date) {
+            lista.append((fecha, TableroNovedad(id: id, texto: texto, estado: estado,
+                                                minutosAtras: TableroTiempo.minutos(desde: fecha, ahora: ahora))))
+        }
+        for e in eventos where e.fecha >= inicio {
+            sumar("evento-\(e.id.uuidString)", e.texto, e.estado, e.fecha)
+        }
+        let filtro = state.vercelProjectFilter
+        for d in state.vercelDeployments where d.createdAt >= inicio && (filtro.isEmpty || filtro.contains(d.projectName)) {
+            if d.isSuccess {
+                sumar("deploy-\(d.id)", "Deploy listo: \(d.projectName)", .bien, d.createdAt)
+            } else if d.state == "CANCELED" {
+                sumar("deploy-\(d.id)", "Deploy cancelado: \(d.projectName)", .apagado, d.createdAt)
+            } else {
+                sumar("deploy-\(d.id)", "Deploy falló: \(d.projectName)", .falla, d.createdAt)
+            }
+        }
+        for r in repos where r.push >= inicio {
+            sumar("push-\(r.id)", "Push en \(r.nombre)", r.ci == .falla ? .falla : .bien, r.push)
+        }
+        return lista.sorted { $0.fecha > $1.fecha }.map(\.novedad)
+    }
+
     /// Las cuatro barras de Consumos. Sin fuente: "sin datos" y sin barra.
     static func consumos(state: AppState, deploysHoy: Int?, repos: [TableroRepo]) -> [TableroConsumo] {
         var lista: [TableroConsumo] = []
@@ -307,8 +347,14 @@ enum TableroArmado {
     /// Vigilantes: solo los que tienen fuente. Claude por el uso del plan,
     /// GitHub por el CI, Vercel por el ultimo deploy de cada proyecto, y la
     /// bateria y el disco del Mac.
-    static func vigilantes(state: AppState, repos: [TableroRepo], equipo: TableroEquipo?) -> [TableroVigilante] {
+    static func vigilantes(state: AppState, repos: [TableroRepo], equipo: TableroEquipo?,
+                           conectado: Bool?, respaldo: Date?) -> [TableroVigilante] {
         var lista: [TableroVigilante] = []
+
+        if let conectado {
+            lista.append(TableroVigilante(id: "internet", nombre: "Internet",
+                                          estado: conectado ? .bien : .falla, problema: "sin conexión"))
+        }
 
         if let uso = state.claudePlanUsage, let pct = ClaudePlanGauge.dominantPct(uso) {
             lista.append(TableroVigilante(id: "claude", nombre: "Claude",
@@ -346,6 +392,12 @@ enum TableroArmado {
                                           : nivel < 0.1 ? .falla : (nivel < 0.2 ? .aviso : .bien)
                 lista.append(TableroVigilante(id: "bateria", nombre: "Batería", estado: estado,
                                               problema: "baja (\(TableroTiempo.porcentaje(nivel)))"))
+            }
+            if let respaldo {
+                let dias = TableroTiempo.minutos(desde: respaldo) / 1440
+                lista.append(TableroVigilante(id: "respaldo", nombre: "Respaldo",
+                                              estado: dias > 14 ? .falla : (dias > 7 ? .aviso : .bien),
+                                              problema: "hace \(dias) días"))
             }
             // Un disco casi lleno no es una falla del disco: se dice lo que pasa.
             lista.append(TableroVigilante(id: "disco", nombre: "Disco",

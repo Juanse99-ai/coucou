@@ -9,14 +9,15 @@ import SwiftUI
 //   3. Deploys y pushes, y el MacBook.
 //   4. Barra de vigilantes y equipos.
 // Mochi lo dibuja BotPlacement en botX/botY de viewLayouts[.tablero], que cae
-// en la tarjeta de estado general. Los datos salen de Coucou (AppState) y de
-// TableroFuentes; lo que aun no tiene fuente (Novedades) sale de
-// TableroMuestra y lleva la etiqueta "muestra".
+// en la tarjeta de estado general. Los datos salen de Coucou (AppState), de
+// TableroFuentes y de TableroEventos; los Pendientes sin permiso de
+// Recordatorios salen de TableroMuestra y llevan la etiqueta "muestra".
 
 struct TableroView: View {
     @ObservedObject var state: AppState
     @ObservedObject private var pendientes = PendientesStore.shared
     @ObservedObject private var fuentes = TableroFuentes.shared
+    @ObservedObject private var eventos = TableroEventos.shared
 
     private let separacion: CGFloat = 8
 
@@ -27,7 +28,8 @@ struct TableroView: View {
     private var equipo: TableroEquipo { fuentes.equipo ?? TableroMuestra.equipo }
 
     var body: some View {
-        let vigilantes = TableroArmado.vigilantes(state: state, repos: fuentes.repos, equipo: fuentes.equipo)
+        let vigilantes = TableroArmado.vigilantes(state: state, repos: fuentes.repos, equipo: fuentes.equipo,
+                                                  conectado: eventos.conectado, respaldo: fuentes.ultimoRespaldo)
         let actividad = TableroArmado.actividad(state: state, repos: fuentes.repos)
         VStack(spacing: separacion) {
             HStack(spacing: separacion) {
@@ -40,7 +42,8 @@ struct TableroView: View {
             HStack(spacing: separacion) {
                 TableroConsumos(consumos: TableroArmado.consumos(state: state, deploysHoy: fuentes.deploysHoy,
                                                                  repos: fuentes.repos))
-                TableroNovedades(novedades: TableroMuestra.novedades)
+                TableroNovedades(novedades: TableroArmado.novedades(state: state, repos: fuentes.repos,
+                                                                    eventos: eventos.eventos))
                 TableroPendientes(store: pendientes)
             }
             .frame(height: 150)
@@ -335,14 +338,20 @@ struct TableroConsumos: View {
 
 // MARK: - 2b. Novedades
 
+/// Lo que paso hoy (TableroArmado.novedades). El punto se pone rojo si algo fallo.
 struct TableroNovedades: View {
     let novedades: [TableroNovedad]
 
     var body: some View {
-        // Solo la cifra, como en Pendientes: "4 hoy" no cabe junto a la etiqueta
-        // "muestra" en la tarjeta angosta y salía cortado ("4 h...").
-        TableroTarjeta(titulo: "Novedades", detalle: "\(novedades.count)", punto: .falla) {
+        // Solo la cifra, como en Pendientes: "4 hoy" no cabe en la tarjeta angosta.
+        let punto: TableroEstado = novedades.contains(where: { $0.estado == .falla }) ? .falla : .bien
+        TableroTarjeta(titulo: "Novedades", detalle: "\(novedades.count)", punto: punto, muestra: false) {
             VStack(alignment: .leading, spacing: 7) {
+                if novedades.isEmpty {
+                    Text(verbatim: "Sin novedades hoy")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(TableroColor.suave)
+                }
                 ForEach(novedades.prefix(5)) { n in
                     HStack(spacing: 6) {
                         Circle()

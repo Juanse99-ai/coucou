@@ -21,11 +21,11 @@ deploys y pushes, el MacBook y una barra de vigilantes.
 | Consumos: GitHub CI | Cuántos repos tienen el CI de la rama principal en verde, con el token de GitHub |
 | Actividad | Los últimos deploys de Vercel y el último push de cada repo con su CI |
 | MacBook | Real: carga, memoria, disco y batería del Mac |
-| Estado general y barra de vigilantes | Claude, GitHub, Vercel, batería y disco; solo los que tienen fuente conectada |
+| Estado general y barra de vigilantes | Internet, Claude, GitHub, Vercel, batería, respaldo de Time Machine y disco; solo los que tienen fuente. Cada uno dice qué pasa ("Disco: casi lleno (93%)") |
 | Pendientes | Recordatorios de Apple sin terminar (botón "Usar mis Recordatorios" en la tarjeta): el check los marca hechos en Recordatorios y el reloj los esconde una hora en el tablero. Lo que se agrega en el iPhone o con Siri aparece en un minuto. Sin permiso, muestra |
-| Novedades | Muestra |
+| Novedades | Lo que pasó hoy: cargador conectado o quitado, internet caído o de vuelta (se anotan desde que abre Coucou, aunque el tablero esté cerrado), deploys de Vercel y pushes de GitHub |
 
-Las tarjetas que todavía no tienen su fuente conectada llevan la etiqueta "muestra".
+Solo Pendientes, mientras no se conecte Recordatorios, lleva la etiqueta "muestra".
 Las fuentes solo trabajan con el tablero abierto: el Mac se mide cada 5 s, Recordatorios
 se lee cada minuto y Vercel y GitHub se consultan cada 2 min. Con el panel cerrado no gastan nada.
 
@@ -62,10 +62,11 @@ sesiones: modifica `~/.claude/settings.json` y guarda una copia antes.
 - `NotchBuddy/Sources/App/Tablero/TableroFuentes.swift`: las fuentes reales (el Mac, Vercel, GitHub) y cómo se arma cada tarjeta.
 - `NotchBuddy/Sources/App/Tablero/PendientesStore.swift`: la lista de pendientes.
 - `NotchBuddy/Sources/App/Tablero/RecordatoriosLector.swift`: la lectura de Recordatorios (EventKit).
+- `NotchBuddy/Sources/App/Tablero/TableroEventos.swift`: cargador e internet (avisos del sistema, sin consultas periódicas).
 - Cambios en archivos de Coucou: `IslandTypes.swift` (vista `.tablero` y su tamaño),
-  `IslandViewContent.swift` (qué vista pinta), `IslandRootView.swift` (botón y alto).
+  `IslandViewContent.swift` (qué vista pinta), `IslandRootView.swift` (botón y alto),
+  `AppDelegate.swift` (arranca `TableroEventos`).
 
 ## Lo que sigue
 
-1. Novedades: cargador, Wi-Fi, deploys y pushes del día.
-2. Wi-Fi y respaldo (Time Machine) como vigilantes.
+1. Tarjeta "Taller hoy": OT abiertas, carros listos para entregar y ventas del día, desde la app del taller (necesita una consulta de solo lectura en esa app).

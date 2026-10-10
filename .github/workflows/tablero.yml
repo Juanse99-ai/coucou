@@ -49,6 +49,13 @@ jobs:
           codesign --force --deep --sign - --entitlements NotchBuddy/Resources/Coucou.entitlements "$APP"
           codesign --verify --deep --strict "$APP"
           lipo -archs "$APP/Contents/MacOS/"* || true
+          # La app firmada ad hoc no puede abrir iCloud: si quedo algo de la
+          # sincronizacion con el iPhone, se cerraria al arrancar.
+          if nm "$APP/Contents/MacOS/Coucou" | grep -q CloudProbe; then
+            echo "::error::La app trae CloudProbe (PHONE_LINK) y se cerraria al abrir"
+            exit 1
+          fi
+          echo "Sin PHONE_LINK: ok"
           ditto -c -k --keepParent "$APP" Coucou-Tablero.zip
 
       - uses: actions/upload-artifact@v4
